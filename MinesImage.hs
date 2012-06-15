@@ -97,6 +97,8 @@ colours = [ ((0,0,255), 1)
           , ((255,0,0), 3)
           , ((0,0,128), 4)
           , ((128,0,0), 5)
+          , ((0,128,128), 6)
+          , ((0,0,0),   7)
           , (backgroundPixel, -1)
           ]
 
@@ -105,7 +107,8 @@ cellIdentify img ccs coord = result
   where conts = cellContents img ccs coord
         mainColours = catMaybes (map (\p -> lookup (fst p) colours) conts)
         result = case mainColours of
-                   (-1:3:_) -> Flagged
+                   (-1:3:7:_) -> Flagged
+                   (-1:7:3:_) -> Flagged
                    (-1:_) -> Unknown
                    (n:_) -> Revealed n
                    _ -> Revealed 0

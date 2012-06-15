@@ -2,6 +2,7 @@ module Logic where
 
 import           Data.List
 import qualified Data.Map as M
+import           Data.Ord
 import           System.Exit
 import           System.IO
 import           System.Process
@@ -38,9 +39,20 @@ boardToDzn board = concatMap (++"\n") items
                 ]
 
 possibleGuesses :: Board -> [ ((Int,Int), Bool) ]
-possibleGuesses board = guesses
+possibleGuesses board = sortBy (comparing unrevealedNeighbours) (filter ((/=0) . revealedNeighbours) guesses)
   where cells = M.filter (not . revealed) board
         guesses = concatMap (\ ((x,y),Unknown) -> [ ((x,y),True), ((x,y),False) ]) (M.toList cells)
+        revealedNeighbours ((x,y),b) = length (filter g [(x+i,y+j) | i <- [-1,0,1], j <- [-1,0,1]]) 
+        unrevealedNeighbours ((x,y),b) = length (filter f [(x+i,y+j) | i <- [-1,0,1], j <- [-1,0,1]])
+        f (x,y) = case M.lookup (x,y) board of
+                    Nothing -> False
+                    Just Unknown -> True
+                    _ -> False
+        g (x,y) = case M.lookup (x,y) board of
+                    Nothing -> False
+                    Just (Revealed _) -> True
+                    _ -> False
+
 
 -- possibleGuesses :: Board -> [ ((Int,Int), Bool) ]
 -- possibleGuesses board = concatMap (++"\n") items
@@ -51,15 +63,18 @@ possibleGuesses board = guesses
 --         items = [ printf "nguesses = %d;" nguesses
 --                 , "guesses = [| " ++ intercalate " | " guessstrings ++ " |];" ]
 
--- Returns True if the guess is satisfiable.
+-- Returns True if the guess is *unsatisfiable*.
 testGuess :: Board -> ((Int,Int), Bool) -> IO Bool
 testGuess board ((x,y),b) = do
     withFile "out.dzn" WriteMode $ \h -> do
       hPutStrLn h (boardToDzn board)
       hPutStrLn h "nguesses = 1;"
       hPutStrLn h (printf "guesses = [| %d,%d,%d |];" x y (fromEnum b))
-    system "mzn2fzn minesweeper.mzn out.dzn"
-    r <- system "~/gecode/gecode-3.7.2/tools/flatzinc/fz minesweeper.fzn"
-    return (r == ExitSuccess)
+    r1 <- system "mzn2fzn minesweeper.mzn out.dzn 2>&1 | grep 'Model inconsistency'"
+    if r1 == ExitSuccess
+      then return True
+      else do
+        r <- system "~/gecode/gecode-3.7.2/tools/flatzinc/fz minesweeper.fzn | head -n 1 | grep UNSAT"
+        return (r == ExitSuccess)
 
 

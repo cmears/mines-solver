@@ -5,7 +5,6 @@ int : w = width-1;
 int : h = height-1;
 
 array [0..w, 0..h] of var bool : mined;
-%array [0..w, 0..h] of var int : danger;
 
 int : nclues;
 array [1..nclues, 1..3] of int : clues;
