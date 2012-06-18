@@ -48,8 +48,8 @@ cellCoords img topLeftCoord = (xcentres, ycentres, cellMinLength)
     nextOne = belowRight topLeftNonEdge
     row = map (\c -> (c, pixAt img c)) (takeWhile ((<w) . fst) (iterate right nextOne))
     grow = map (head &&& length) . groupBy ((==) `on` snd) $ row
-    cellMinLength = snd (head grow) - 2
-    cellMaxLength = snd (head grow) + 3
+    cellMinLength = round (0.8 * fromIntegral (snd (head grow)))
+    cellMaxLength = round (1.2 * fromIntegral (snd (head grow)))
     rowcells = filter (\ (_,l) -> cellMinLength <= l) (takeWhile ((<= cellMaxLength) . snd) grow)
     xcentres = map (\ (((x,_),_p), l) -> x + (l `div` 2)) rowcells
 
