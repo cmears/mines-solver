@@ -7,6 +7,7 @@ import           System.Exit
 import           System.IO
 import           System.Process
 import           Text.Printf
+import TimeAccounting
 
 data Cell = Unknown
           | Revealed Int
@@ -39,7 +40,8 @@ boardToDzn board = concatMap (++"\n") items
                 ]
 
 possibleGuesses :: Board -> [ ((Int,Int), Bool) ]
-possibleGuesses board = sortBy (comparing unrevealedNeighbours) (filter ((/=0) . revealedNeighbours) guesses)
+possibleGuesses board = -- sortBy (comparing unrevealedNeighbours)
+                        (filter ((/=0) . revealedNeighbours) guesses)
   where cells = M.filter (not . revealed) board
         guesses = concatMap (\ ((x,y),Unknown) -> [ ((x,y),True), ((x,y),False) ]) (M.toList cells)
         revealedNeighbours ((x,y),b) = length (filter g [(x+i,y+j) | i <- [-1,0,1], j <- [-1,0,1]]) 
@@ -63,18 +65,37 @@ possibleGuesses board = sortBy (comparing unrevealedNeighbours) (filter ((/=0) .
 --         items = [ printf "nguesses = %d;" nguesses
 --                 , "guesses = [| " ++ intercalate " | " guessstrings ++ " |];" ]
 
--- Returns True if the guess is *unsatisfiable*.
-testGuess :: Board -> ((Int,Int), Bool) -> IO Bool
-testGuess board ((x,y),b) = do
+-- -- Returns True if the guess is *unsatisfiable*.
+-- testGuess :: Account -> Board -> ((Int,Int), Bool) -> IO Bool
+-- testGuess account board ((x,y),b) = do
+--     withFile "out.dzn" WriteMode $ \h -> do
+--       hPutStrLn h (boardToDzn board)
+--       hPutStrLn h "nguesses = 1;"
+--       hPutStrLn h (printf "guesses = [| %d,%d,%d |];" x y (fromEnum b))
+--     r1 <- accountAction account "flattening" $
+--             system "mzn2fzn minesweeper.mzn out.dzn 2>&1 | grep 'Model inconsistency'"
+--     if r1 == ExitSuccess
+--       then return True
+--       else do
+--         r <- accountAction account "fz" $
+--                system "~/gecode/gecode-3.7.2/tools/flatzinc/fz -mode stat minesweeper.fzn | tee -a stats | head -n 1 | grep UNSAT"
+--         return (r == ExitSuccess)
+
+testGuess :: Account -> Board -> ((Int,Int), Bool) -> IO Bool
+testGuess account board ((x,y),b) = do
     withFile "out.dzn" WriteMode $ \h -> do
       hPutStrLn h (boardToDzn board)
       hPutStrLn h "nguesses = 1;"
       hPutStrLn h (printf "guesses = [| %d,%d,%d |];" x y (fromEnum b))
-    r1 <- system "mzn2fzn minesweeper.mzn out.dzn 2>&1 | grep 'Model inconsistency'"
-    if r1 == ExitSuccess
-      then return True
-      else do
-        r <- system "~/gecode/gecode-3.7.2/tools/flatzinc/fz minesweeper.fzn | head -n 1 | grep UNSAT"
-        return (r == ExitSuccess)
+    withFile "gecode-input" WriteMode $ \h -> do
+      hPutStrLn h (show (fst (fst (M.findMax board)) + 1))
+      hPutStrLn h (show (snd (fst (M.findMax board)) + 1))
+      hPrintf h "%d %d %d\n" x y (fromEnum b)
+      let clues = M.filter revealed board
+          nclues = M.size clues
+      mapM_ (\ ((xx,yy),cell) -> hPrintf h "%d %d %d\n" xx yy (revealedToN cell)) (M.toList clues)
+    r <- accountAction account "gecode" $
+               system "./a.out < gecode-input"
+    return (r == ExitFailure 1)
 
 
