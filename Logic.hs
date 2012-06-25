@@ -66,7 +66,7 @@ testGuess account board ((x,y),b) = do
           nclues = M.size clues
       mapM_ (\ ((xx,yy),cell) -> hPrintf h "%d %d %d\n" xx yy (revealedToN cell)) (M.toList clues)
     r <- accountAction account "gecode" $
-               system "./a.out < gecode-input"
+               system "./mines-solve < gecode-input"
     return (r == ExitFailure 1)
 
 propagate :: Account -> Board -> IO [ ((Int,Int), Bool) ]
@@ -79,7 +79,7 @@ propagate account board = do
           nclues = M.size clues
       mapM_ (\ ((xx,yy),cell) -> hPrintf h "%d %d %d\n" xx yy (revealedToN cell)) (M.toList clues)
     r <- accountAction account "gecode-prop" $
-         system "./a.out < gecode-prop-input > gecode-prop-output"
+         system "./mines-solve < gecode-prop-input > gecode-prop-output"
     c <- liftM lines (readFile "gecode-prop-output")
     when ((head c) == "failed") (error "propagation failed!")
     let output = map specialRead (tail c)
