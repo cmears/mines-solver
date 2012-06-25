@@ -52,15 +52,6 @@ accountAction account label action = do
   let times = Times { cpuTime = cpuTimeInMilliseconds
                     , processTimes = processTimesDiff }
   modifyIORef account (M.insertWith' addTimes label times)
-
-
-  -- internalMap <- readIORef account
-  -- let times = M.findWithDefault zeroTimes label internalMap
-  --     times' = Times { cpuTime = (cpuTime times) + cpuTimeInMilliseconds
-  --                    , processTimes = (processTimes times) `addProcessTimes` processTimesDiff }
-  --     internalMap' = M.insert
-  -- modifyIORef account (M.insertWith' addTimes label times)
-  -- writeIORef account times'
   return result
 
 addTimes :: Times -> Times -> Times
@@ -86,4 +77,3 @@ accountSummary account = do
   m <- readIORef account
   forM_ (M.toList m) $ \(label, time) -> do
     putStrLn $ label ++ ": " ++ showTimes time ++ "ms"
-
