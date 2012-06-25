@@ -13,8 +13,10 @@ import TimeAccounting
 
 solvestep account initBoard = do
   -- Get a screenshot of the window.
-  accountAction account "screengrab" $
-    system "xdotool search --onlyvisible --name Mines | xargs xwd -id | xwdtopnm | convert - out.png"
+  accountAction account "screengrab" $ do
+    accountAction account "dump" $ system "xdotool search --onlyvisible --name Mines | xargs xwd -id > xwddump"
+--    accountAction account "dumptopnm" $ system "xwdtopnm < xwddump > dump.ppm"
+    accountAction account "imagemagick" $ system "convert xwddump out.png"
 
   -- Read in the image.
   (ImageRGB8 img) <- liftM (either error id) (readImage "out.png")
@@ -50,6 +52,8 @@ solvestep account initBoard = do
   forM_ [ (x,y) | y <- [0..nys-1], x <- [0..nxs-1] ] $ \(x,y) -> do
     putStr (showCell ((M.!) board (x,y)))
     when (x == nxs-1) (putStr "\n")
+
+--  getLine
 --  getLine
 
   -- let xpix = cxs !! 2
@@ -62,10 +66,18 @@ solvestep account initBoard = do
 
 --  print (possibleGuesses board)
 
-  g <- accountAction account "guess testing" $ do
-    g' <- findGuess account board (groupBy ((==) `on` fst) (possibleGuesses board)) 99999
-    print g'
-    return g'
+  g <- do
+    p <- accountAction account "propagation" $ do
+           propagate account board
+    if null p
+      then do
+        putStrLn "RESORTING TO SEARCH"
+        hFlush stdout
+        accountAction account "guess testing" $ do
+          g' <- findGuess account board (groupBy ((==) `on` fst) (possibleGuesses board)) 99999
+          print g'
+          return g'
+      else return p
   
   shouldContinue <- accountAction account "clicking" $ do
     case g of
@@ -75,7 +87,7 @@ solvestep account initBoard = do
                           concatMap ( \((x,y),b) ->
                                           let xpix = cxs !! x
                                               ypix = cys !! y
-                                          in "mousemove --window %1 " ++ show xpix ++ " " ++ show ypix ++ " sleep 0.01 click " ++ (if b then "1" else "3") ++ " " ) gs
+                                          in "mousemove --window %1 " ++ show xpix ++ " " ++ show ypix ++ " click " ++ (if b then "1" else "3") ++ " " ) gs
              -- forM_ gs $ \ ((x,y),b) -> do
              --   let xpix = cxs !! x
              --       ypix = cys !! y
@@ -85,8 +97,8 @@ solvestep account initBoard = do
              return True
 
   when shouldContinue $ do
-    -- Delay for half a second in case of flashing board
-    threadDelay 500000
+    -- Delay in case of flashing board
+    threadDelay 300000
     solvestep account board
 
 

@@ -46,6 +46,9 @@ public:
 
 int
 main(void) {
+  int mode;
+  cin >> mode;
+  
   int width, height;
   cin >> width;
   cin >> height;
@@ -64,31 +67,34 @@ main(void) {
   }
   Minesweeper* s = new Minesweeper(width, height, clues);
   Matrix<BoolVarArray> m(s->bs, width, height);
-  rel(*s, m(guessx, guessy), IRT_EQ, guesst);
-  // switch (s->status()) {
-  // case SS_FAILED: cout << "failed\n"; break;
-  // case SS_SOLVED: cout << "solved\n"; break;
-  // case SS_BRANCH: cout << "consistent\n"; break;
-  // }
 
-  DFS<Minesweeper> e(s);
-  delete s;
-
-  if (e.next())
+  if (mode == 1) {
+    // Only propagate
+    switch (s->status()) {
+    case SS_FAILED: cout << "failed\n"; break;
+    case SS_SOLVED: cout << "solved\n"; break;
+    case SS_BRANCH: cout << "consistent\n"; break;
+    }
+    for (int x = 0 ; x < width ; x++) {
+      for (int y = 0 ; y < height ; y++) {
+        cout << x << " " << y << " ";
+        if (m(x,y).assigned())
+          cout << m(x,y);
+        else
+          cout << "-1";
+        cout << "\n";
+      }
+    }
     return 0;
-  else
-    return 1;
+  } else {
+    // Prove unsat
+    rel(*s, m(guessx, guessy), IRT_EQ, guesst);
+    DFS<Minesweeper> e(s);
+    delete s;
 
-  // for (int x = 0 ; x < width ; x++) {
-  //   for (int y = 0 ; y < height ; y++) {
-  //     cout << x << " " << y << " ";
-  //     if (m(x,y).assigned())
-  //       cout << m(x,y);
-  //     else
-  //       cout << "?";
-  //     cout << "\n";
-  //   }
-  // }
-
-  //  return 0;
+    if (e.next())
+      return 0;
+    else
+      return 1;
+  }
 }
