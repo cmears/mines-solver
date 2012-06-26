@@ -2,7 +2,7 @@
 
 This software solves Minesweeper games automatically.  Specifically,
 it will work with Simon Tatham's *Mines* game on X.  See
-[this article][http://www.cmears.id.au/articles/mines-solver] for more
+[this article](http://www.cmears.id.au/articles/mines-solver) for more
 details.
 
 ## Building
